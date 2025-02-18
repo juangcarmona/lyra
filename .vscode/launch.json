@@ -1,0 +1,50 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LYRA - Download Single Video",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/Lyra/bin/Debug/net8.0/Lyra.dll",
+            "args": [
+                "--video",
+                "https://www.youtube.com/watch?v=WBqf-vSMA6k"
+            ],
+            "cwd": "${workspaceFolder}/src/Lyra",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "LYRA - Download Playlist",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/Lyra/bin/Debug/net8.0/Lyra.dll",
+            "args": [
+                "--playlist",
+                "https://www.youtube.com/playlist?list=PLquujPA7EWzOoUtojEcgQJCpTkdbVG4LV"
+            ],
+            "cwd": "${workspaceFolder}/src/Lyra",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Run Unit Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "dotnet",
+            "args": [
+                "test",
+                "${workspaceFolder}/test/Lyra.Tests/Lyra.Tests.csproj"
+            ],
+            "cwd": "${workspaceFolder}/test/Lyra.Tests",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

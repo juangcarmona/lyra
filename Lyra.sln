@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D3AFCD59-25A6-44AA-8112-F0369709F6AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lyra", "src\Lyra\Lyra.csproj", "{A949CC63-C271-4BD0-BE28-98B9FE448B62}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{E405065D-D2BF-471E-A1EF-D7ECDE078A7F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lyra.Tests", "test\Lyra.Tests\Lyra.Tests.csproj", "{91794000-81B2-4E57-8868-6D646E5AB446}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A949CC63-C271-4BD0-BE28-98B9FE448B62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A949CC63-C271-4BD0-BE28-98B9FE448B62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A949CC63-C271-4BD0-BE28-98B9FE448B62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A949CC63-C271-4BD0-BE28-98B9FE448B62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91794000-81B2-4E57-8868-6D646E5AB446}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91794000-81B2-4E57-8868-6D646E5AB446}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91794000-81B2-4E57-8868-6D646E5AB446}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91794000-81B2-4E57-8868-6D646E5AB446}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A949CC63-C271-4BD0-BE28-98B9FE448B62} = {D3AFCD59-25A6-44AA-8112-F0369709F6AE}
+		{91794000-81B2-4E57-8868-6D646E5AB446} = {E405065D-D2BF-471E-A1EF-D7ECDE078A7F}
+	EndGlobalSection
+EndGlobal
