@@ -1,9 +1,13 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Lyra.Services;
 using Lyra.Utils;
+using Microsoft.Extensions.Logging.Console;
+using Lyra.Logging;
 
 namespace Lyra
 {
@@ -11,15 +15,30 @@ namespace Lyra
     {
         static async Task Main(string[] args)
         {
+            // Load configuration from appsettings.json
+            var basePath = AppContext.BaseDirectory; // Points to bin/Debug/net8.0/
+
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)  
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .Build();
+
+
             // Set up Dependency Injection with Logging
             var serviceProvider = new ServiceCollection()
-                .AddLogging(configure =>
+                .AddLogging(loggingBuilder =>
                 {
-                    configure.AddConsole();
-                    configure.SetMinimumLevel(LogLevel.Information);
+                    loggingBuilder.ClearProviders(); // Remove default providers
+                    loggingBuilder.AddConsoleFormatter<SimpleConsoleFormatter, ConsoleFormatterOptions>();
+                    loggingBuilder.AddConsole(options =>
+                    {
+                        options.FormatterName = "simple"; // Use custom formatter
+                    });
+                    loggingBuilder.SetMinimumLevel(LogLevel.Debug);
                 })
                 .AddSingleton<DownloaderService>()
                 .BuildServiceProvider();
+
 
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
