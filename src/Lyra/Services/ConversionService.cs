@@ -1,44 +1,34 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Xabe.FFmpeg;
+using Microsoft.Extensions.Logging;
 
-namespace Lyra.Services
+public class ConversionService
 {
-    public class ConversionService
+    private readonly ILogger<ConversionService> _logger;
+
+    public ConversionService(ILogger<ConversionService> logger)
     {
-        public async Task<string> ConvertToMp3(string videoPath)
+        _logger = logger;
+    }
+
+    public async Task<string> ConvertToMp3(string inputPath)
+    {
+        string outputPath = Path.ChangeExtension(inputPath, ".mp3");
+
+        try
         {
-            string mp3Path = Path.ChangeExtension(videoPath, ".mp3");
+            _logger.LogInformation($"🎵 Converting {inputPath} to MP3...");
 
-            try
-            {
-                Console.WriteLine("🎵 Converting to mp3...");
+            var conversion = await FFmpeg.Conversions.New()
+                .AddParameter($"-i \"{inputPath}\" -q:a 2 \"{outputPath}\"") // VBR MP3
+                .Start();
 
-                var conversion = await FFmpeg.Conversions.FromSnippet.ExtractAudio(videoPath, mp3Path);
-
-                conversion.OnProgress += (sender, args) =>
-                {
-                    Console.Write($"\rProgreso: {args.Percent}%");
-                };
-
-                await conversion.Start();
-                Console.WriteLine($"\n🎶 MP3 saved: {mp3Path}");
-
-                return mp3Path;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error during conversion: {ex.Message}");
-
-                if (File.Exists(mp3Path))
-                {
-                    File.Delete(mp3Path);
-                    Console.WriteLine($"🗑️ MP3 deleted: {mp3Path}");
-                }
-
-                throw;
-            }
+            _logger.LogInformation($"✅ Conversion complete: {outputPath}");
+            return outputPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"❌ Error converting to MP3: {ex.Message}");
+            throw;
         }
     }
 }

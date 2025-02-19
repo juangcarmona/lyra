@@ -1,13 +1,6 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Lyra.Services;
-using Lyra.Utils;
-using Microsoft.Extensions.Logging.Console;
-using Lyra.Logging;
 
 namespace Lyra
 {
@@ -15,44 +8,10 @@ namespace Lyra
     {
         static async Task Main(string[] args)
         {
-            // Load configuration from appsettings.json
-            var basePath = AppContext.BaseDirectory; // Points to bin/Debug/net8.0/
-
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(basePath)  
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .Build();
-
-
-            // Set up Dependency Injection with Logging
-            var serviceProvider = new ServiceCollection()
-                .AddLogging(loggingBuilder =>
-                {
-                    loggingBuilder.ClearProviders(); // Remove default providers
-                    loggingBuilder.AddConsoleFormatter<SimpleConsoleFormatter, ConsoleFormatterOptions>();
-                    loggingBuilder.AddConsole(options =>
-                    {
-                        options.FormatterName = "simple"; // Use custom formatter
-                    });
-                    loggingBuilder.SetMinimumLevel(LogLevel.Debug);
-                })
-                .AddSingleton<DownloaderService>()
-                .BuildServiceProvider();
-
-
+            var serviceProvider = Startup.ConfigureServices();
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
             PrintBanner(logger);
-
-            try
-            {
-                FFmpegChecker.EnsureFFmpegIsAvailable(logger);
-            }
-            catch (Exception)
-            {
-                logger.LogError("❌ FFmpeg is required for this application to run.");
-                return;
-            }
 
             var downloader = serviceProvider.GetRequiredService<DownloaderService>();
 
@@ -65,12 +24,12 @@ namespace Lyra
             if (args[0] == "--video" && args.Length > 1)
             {
                 string videoUrl = args[1];
-                await downloader.DownloadVideo(videoUrl);
+                await downloader.DownloadAudio(videoUrl);
             }
             else if (args[0] == "--playlist" && args.Length > 1)
             {
                 string playlistUrl = args[1];
-                await downloader.DownloadPlaylist(playlistUrl);
+                await downloader.DownloadPlaylistAudios(playlistUrl);
             }
             else
             {

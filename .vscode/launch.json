@@ -9,7 +9,8 @@
             "program": "${workspaceFolder}/src/Lyra/bin/Debug/net8.0/Lyra.dll",
             "args": [
                 "--video",
-                "https://www.youtube.com/watch?v=WBqf-vSMA6k"
+                "https://music.youtube.com/watch?v=xNPWaDgg_so&si=tuauN_PzFjETzxXN"
+                // "https://www.youtube.com/watch?v=WBqf-vSMA6k"
             ],
             "cwd": "${workspaceFolder}/src/Lyra",
             "stopAtEntry": false,

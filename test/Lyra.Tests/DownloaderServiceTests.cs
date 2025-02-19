@@ -15,6 +15,7 @@ namespace Lyra.Tests
         private readonly DownloaderService _downloader;
         private readonly string _testDownloadPath;
         private readonly ILogger<DownloaderService> _mockLogger;
+        private readonly ConversionService _mockConversionService;
 
         public DownloaderServiceTests()
         {
@@ -23,9 +24,10 @@ namespace Lyra.Tests
             Directory.CreateDirectory(_testDownloadPath);
 
             _mockLogger = Substitute.For<ILogger<DownloaderService>>();
+            _mockConversionService = Substitute.For<ConversionService>();
 
             // Inject the logger mock
-            _downloader = new DownloaderService(_mockLogger);
+            _downloader = new DownloaderService(_mockLogger, _mockConversionService);
         }
 
         [Fact]
@@ -33,7 +35,7 @@ namespace Lyra.Tests
         {
             string videoUrl = "https://www.youtube.com/watch?v=WBqf-vSMA6k"; // Example (verify it's available)
 
-            await _downloader.DownloadVideo(videoUrl);
+            await _downloader.DownloadAudio(videoUrl);
 
             // Assert the MP3 file exists
             string expectedMp3 = Directory.GetFiles(_testDownloadPath, "*.mp3").FirstOrDefault();
@@ -49,7 +51,7 @@ namespace Lyra.Tests
         {
             string playlistUrl = "https://www.youtube.com/playlist?list=PLquujPA7EWzOoUtojEcgQJCpTkdbVG4LV"; // Example
 
-            await _downloader.DownloadPlaylist(playlistUrl);
+            await _downloader.DownloadPlaylistAudios(playlistUrl);
 
             // Assert multiple MP3 files exist
             var mp3Files = Directory.GetFiles(_testDownloadPath, "*.mp3");

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using VideoLibrary;
+using YoutubeExplode;
 
 namespace Lyra.Services
 {
@@ -8,87 +8,93 @@ namespace Lyra.Services
     {
         private readonly ILogger<DownloaderService> _logger;
         private readonly ConversionService _conversionService;
-        private static readonly HttpClient _httpClient = new HttpClient();
-        private readonly string _downloadPath = Path.Combine(Environment.CurrentDirectory, "downloads");
+        private static readonly HttpClient _httpClient = new();
+        private readonly YoutubeClient _youtube;
+        private readonly string _downloadPath = Path.Combine(AppContext.BaseDirectory, "downloads");
 
-        public DownloaderService(ILogger<DownloaderService> logger)
+        public DownloaderService(ILogger<DownloaderService> logger, ConversionService conversionService)
         {
             _logger = logger;
+            _conversionService = conversionService;
+            _youtube = new YoutubeClient();
             Directory.CreateDirectory(_downloadPath);
-            _conversionService = new ConversionService();
         }
 
-        public async Task DownloadVideo(string url)
+        public async Task DownloadAudio(string url)
         {
-            _logger.LogInformation($"🎬 Downloading video: {url}");
-
             try
             {
-                var youtube = YouTube.Default;
-                var video = await youtube.GetVideoAsync(url);
-                string videoPath = Path.Combine(_downloadPath, video.FullName);
+                _logger.LogInformation($"🎵 Downloading audio: {url}");
 
-                await File.WriteAllBytesAsync(videoPath, await video.GetBytesAsync());
+                var video = await _youtube.Videos.GetAsync(url);
+                var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(url);
 
-                _logger.LogInformation($"✅ Download complete: {videoPath}");
+                var audioStreamInfo = streamManifest
+                    .GetAudioOnlyStreams()
+                    .OrderByDescending(s => s.Bitrate)
+                    .FirstOrDefault();
 
-                // Convert to MP3
-                await _conversionService.ConvertToMp3(videoPath);
-
-                // Optional: Delete the original video file after conversion
-                File.Delete(videoPath);
-                _logger.LogInformation($"🗑️ Deleted original video file: {videoPath}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"❌ Error downloading video: {ex.Message}");
-            }
-        }
-
-        public async Task DownloadPlaylist(string playlistUrl)
-        {
-            _logger.LogInformation($"📜 Fetching playlist: {playlistUrl}");
-
-            try
-            {
-                // Fetch the playlist webpage
-                string htmlContent = await _httpClient.GetStringAsync(playlistUrl);
-
-                // Extract video URLs using regex (matches video IDs from playlist page)
-                var matches = Regex.Matches(htmlContent, @"watch\?v=(.{11})");
-                var videoUrls = new HashSet<string>(); // Use HashSet to avoid duplicates
-
-                foreach (Match match in matches)
+                if (audioStreamInfo == null)
                 {
-                    string videoId = match.Groups[1].Value;
-                    string videoUrl = $"https://www.youtube.com/watch?v={videoId}";
-
-                    if (videoUrls.Add(videoUrl)) // Adds only if it's unique
-                    {
-                        _logger.LogDebug($"🔗 Found video: {videoUrl}");
-                    }
-                }
-
-                if (videoUrls.Count == 0)
-                {
-                    _logger.LogWarning("❌ No videos found in playlist.");
+                    _logger.LogError("❌ No audio streams found.");
                     return;
                 }
 
-                _logger.LogInformation($"🔹 Found {videoUrls.Count} videos in playlist.");
+                string safeTitle = FileNameSanitizer.SanitizeFileName(video.Title);
+                string audioPath = Path.Combine(_downloadPath, safeTitle + "." + audioStreamInfo.Container.Name);
 
-                // Download each video
-                foreach (var url in videoUrls)
+                await _youtube.Videos.Streams.DownloadAsync(audioStreamInfo, audioPath);
+
+                _logger.LogInformation($"✅ Audio downloaded: {audioPath}");
+
+                await _conversionService.ConvertToMp3(audioPath);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error downloading audio: {ex.Message}");
+            }
+        }
+
+
+        public async Task DownloadPlaylistAudios(string playlistUrl)
+        {
+            _logger.LogInformation($"📜 Fetching playlist: {playlistUrl}");
+
+            var videoUrls = new List<string>();
+
+            try
+            {
+                // Fetch videos asynchronously using await foreach
+                await foreach (var video in _youtube.Playlists.GetVideosAsync(playlistUrl))
                 {
-                    await DownloadVideo(url);
+                    string videoUrl = $"https://www.youtube.com/watch?v={video.Id}";
+                    videoUrls.Add(videoUrl);
+                    _logger.LogDebug($"🔗 Found video: {videoUrl}");
                 }
 
-                _logger.LogInformation($"✅ Playlist downloaded successfully.");
+                if (!videoUrls.Any())
+                {
+                    _logger.LogWarning("❌ No videos found in the playlist.");
+                    return;
+                }
+
+                _logger.LogInformation($"🔹 Found {videoUrls.Count} videos in the playlist. Starting downloads...");
+
+                // **Execute all downloads in parallel**
+                var downloadTasks = videoUrls.Select(url => DownloadAudio(url));
+                await Task.WhenAll(downloadTasks);
+
+                _logger.LogInformation($"✅ Playlist download and conversion completed.");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"⚠️ Error fetching playlist: {ex.Message}");
             }
         }
+
+
+
+
     }
 }
