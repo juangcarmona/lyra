@@ -9,14 +9,22 @@ namespace Lyra.Services
         private readonly ConversionService _conversionService;
         private static readonly HttpClient _httpClient = new();
         private readonly YoutubeClient _youtube;
-        private readonly string _downloadPath = Path.Combine(AppContext.BaseDirectory, "downloads");
+        private readonly bool _convertToMp3;
+        private readonly string _destinationPath;
 
-        public DownloaderService(ILogger<DownloaderService> logger, ConversionService conversionService)
+        public DownloaderService(
+            ILogger<DownloaderService> logger,
+            ConversionService conversionService,
+            bool convertToMp3,
+            string destinationPath)
         {
             _logger = logger;
             _conversionService = conversionService;
             _youtube = new YoutubeClient();
-            Directory.CreateDirectory(_downloadPath);
+            _convertToMp3 = convertToMp3;
+            _destinationPath = destinationPath;
+
+            Directory.CreateDirectory(_destinationPath);
         }
 
         public async Task DownloadAudio(string url)
@@ -40,13 +48,16 @@ namespace Lyra.Services
                 }
 
                 string safeTitle = FileNameSanitizer.SanitizeFileName(video.Title);
-                string audioPath = Path.Combine(_downloadPath, safeTitle + "." + audioStreamInfo.Container.Name);
+                string audioPath = Path.Combine(_destinationPath, safeTitle + "." + audioStreamInfo.Container.Name);
 
                 await _youtube.Videos.Streams.DownloadAsync(audioStreamInfo, audioPath);
 
                 _logger.LogInformation($"✅ Audio downloaded: {audioPath}");
 
-                await _conversionService.ConvertToMp3(audioPath);
+                if (_convertToMp3)
+                {
+                    await _conversionService.ConvertToMp3(audioPath);
+                }
 
             }
             catch (Exception ex)
@@ -54,7 +65,6 @@ namespace Lyra.Services
                 _logger.LogError($"❌ Error downloading audio: {ex.Message}");
             }
         }
-
 
         public async Task DownloadPlaylistAudios(string playlistUrl)
         {

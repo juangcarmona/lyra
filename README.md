@@ -1,10 +1,10 @@
-# LYRA - Lightweight Youtube Ripping Assistant
+# 𝐋𝐘𝐑𝐀 - 𝐋ightweight 𝐘outube 𝐑ipping 𝐀ssistant
 
 ![LYRA Mosaic](assets/lyra.webp)
 
 ## Introduction
 
-LYRA (Lightweight Youtube Ripping Assistant) is a modern and efficient command-line tool designed to extract and download audio from YouTube videos and playlists. It is inspired by a previous project, [**YoutubeMp3Downloader**](https://github.com/juangcarmona/youtube-mp3-downloader), which was an early attempt at building a similar tool. While that project had its strengths, LYRA takes things further by offering a streamlined CLI experience, enhanced performance, and playlist support.
+𝐋𝐘𝐑𝐀 (𝐋ightweight 𝐘outube 𝐑ipping 𝐀ssistant) is a modern and efficient command-line tool designed to extract and download audio from YouTube videos and playlists. It is inspired by a previous project, [**YoutubeMp3Downloader**](https://github.com/juangcarmona/youtube-mp3-downloader), which was an early attempt at building a similar tool. While that project had its strengths, LYRA takes things further by offering a streamlined CLI experience, enhanced performance, and playlist support.
 
 ## Features
 - **Download a single YouTube video as MP3**.

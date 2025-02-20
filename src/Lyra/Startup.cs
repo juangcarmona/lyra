@@ -9,7 +9,7 @@ namespace Lyra
 {
     public static class Startup
     {
-        public static ServiceProvider ConfigureServices()
+        public static ServiceProvider ConfigureServices(bool convertToMp3, string destinationPath)
         {
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
@@ -27,7 +27,12 @@ namespace Lyra
                     });
                     loggingBuilder.SetMinimumLevel(LogLevel.Debug);
                 })
-                .AddSingleton<DownloaderService>()
+                .AddSingleton<DownloaderService>(sp =>
+                    new DownloaderService(
+                        sp.GetRequiredService<ILogger<DownloaderService>>(),
+                        sp.GetRequiredService<ConversionService>(),
+                        convertToMp3,
+                        destinationPath))
                 .AddSingleton<ConversionService>()
                 .BuildServiceProvider();
         }
