@@ -49,8 +49,10 @@ Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 # Add script folder to user's PATH if not already present
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
 if ($envPath -notlike "*$scriptFolder*") {
-    [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$scriptFolder", "User")
+    $newPath = "$envPath;$scriptFolder"
+    [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
+
 
 Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
