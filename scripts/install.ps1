@@ -57,4 +57,4 @@ if ($envPath -notlike "*$env:USERPROFILE\scripts*") {
     [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$env:USERPROFILE\scripts", [System.EnvironmentVariableTarget]::User)
 }
 
-Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see available commands."
+Write-Host "🎉 Installation complete! Use lyra in your terminal to see available commands."
