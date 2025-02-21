@@ -63,8 +63,8 @@ public class ConversionService
             FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, _appPath).Wait();
 
             // Locate the downloaded executables correctly
-            string tempFfmpeg = LocateDownloadedFile(executionPath, GetFFmpegExecutable());
-            string tempFfprobe = LocateDownloadedFile(executionPath, GetFFprobeExecutable());
+            string tempFfmpeg = LocateDownloadedFile(_appPath, GetFFmpegExecutable());
+            string tempFfprobe = LocateDownloadedFile(_appPath, GetFFprobeExecutable());
 
             if (string.IsNullOrEmpty(tempFfmpeg) || string.IsNullOrEmpty(tempFfprobe))
                 throw new Exception("FFmpeg download completed but executables were not found.");
