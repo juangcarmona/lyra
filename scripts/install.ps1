@@ -43,7 +43,7 @@ if (-not (Test-Path $scriptFolder)) {
 
 # Create launcher script
 Write-Host "🚀 Creating executable wrapper..."
-$scriptContent = "dotnet `"$installDir\Lyra.dll`" `$args"
+$scriptContent = "dotnet `"$installDir\Lyra.dll`" $args"
 Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 
 # Add script folder to user's PATH if not already present
