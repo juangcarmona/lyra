@@ -53,4 +53,4 @@ if ($envPath -notlike "*$scriptFolder*") {
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
 
-Write-Host "🎉 Installation complete! Use 'lyra' to see all available commands."
+Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
