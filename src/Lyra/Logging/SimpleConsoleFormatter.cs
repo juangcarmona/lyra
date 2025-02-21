@@ -7,7 +7,6 @@ namespace Lyra.Logging
     public class SimpleConsoleFormatter : ConsoleFormatter
     {
         public SimpleConsoleFormatter() : base("simple") { }
-
         public override void Write<TState>(
             in LogEntry<TState> logEntry,
             IExternalScopeProvider? scopeProvider,
@@ -17,23 +16,22 @@ namespace Lyra.Logging
                 return;
 
             string message = logEntry.Formatter(logEntry.State, logEntry.Exception);
-
             if (string.IsNullOrEmpty(message))
                 return;
 
-            // Set console color based on log level
-            ConsoleColor originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = logEntry.LogLevel switch
+            // Use ANSI escape codes for color (PowerShell supports this)
+            string colorCode = logEntry.LogLevel switch
             {
-                LogLevel.Information => ConsoleColor.DarkCyan, // LYRA color (approximation of #004F73)
-                LogLevel.Warning => ConsoleColor.DarkYellow,   // Orange-like warning
-                LogLevel.Error => ConsoleColor.Red,
-                LogLevel.Critical => ConsoleColor.DarkRed,
-                _ => ConsoleColor.Gray
+                LogLevel.Information => "\x1b[36m",  // Cyan
+                LogLevel.Warning => "\x1b[33m",      // Yellow
+                LogLevel.Error => "\x1b[31m",        // Red
+                LogLevel.Critical => "\x1b[91m",     // Bright Red
+                _ => "\x1b[37m"                      // White
             };
 
-            textWriter.WriteLine(message);
-            Console.ForegroundColor = originalColor;
+            string resetCode = "\x1b[0m"; // Reset color
+
+            textWriter.WriteLine($"{colorCode}{message}{resetCode}");
         }
     }
 }

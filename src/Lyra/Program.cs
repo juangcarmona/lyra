@@ -11,6 +11,8 @@ namespace Lyra
 
         static async Task Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
             // Default values
             bool convertToMp3 = true;
             // string destinationPath = GetDefaultDownloadPath();
