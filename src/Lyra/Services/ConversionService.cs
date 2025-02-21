@@ -14,7 +14,7 @@ public class ConversionService
     public ConversionService(ILogger<ConversionService> logger)
     {
         _logger = logger;
-        _appPath =AppContext.BaseDirectory
+        _appPath =AppContext.BaseDirectory;
         EnsureFFmpegIsAvailable();
     }
 
