@@ -1,4 +1,5 @@
-$projectName = "Lyra"
+$projectName = "LYRA"
+$repoUrl = "https://github.com/juangcarmona/lyra.git"
 $installDir = Join-Path $env:USERPROFILE $projectName
 $scriptFolder = Join-Path $env:USERPROFILE "scripts"
 $scriptPath = Join-Path $scriptFolder "lyra.cmd"
@@ -16,14 +17,18 @@ if ($dotnetVersion -notmatch "^8\..*") {
 
 Write-Host "✅ .NET 8 detected: $dotnetVersion" -ForegroundColor Green
 
-# Create install directory
-if (-not (Test-Path $installDir)) {
-    New-Item -ItemType Directory -Path $installDir | Out-Null
+# Download source code
+$repoDir = Join-Path $env:TEMP "lyra_repo"
+if (Test-Path -Path $repoDir) {
+    Remove-Item -Recurse -Force $repoDir
 }
+
+Write-Host "📥 Cloning repository..."
+git clone $repoUrl $repoDir
 
 # Publish in Release mode
 Write-Host "📦 Publishing $projectName..."
-dotnet publish "../src/$projectName/$projectName.csproj" --configuration Release --output $installDir
+dotnet publish "$repoDir/src/$projectName/$projectName.csproj" --configuration Release --output $installDir
 
 # Ensure the scripts directory exists
 if (-not (Test-Path $scriptFolder)) {
