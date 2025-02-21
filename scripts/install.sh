@@ -37,16 +37,23 @@ if [ ! -f "$TEMP_DIR/src/Lyra/Lyra.csproj" ]; then
     exit 1
 fi
 
-# Create install directory with correct permissions
+# Create the LYRA install directory with full permissions
 sudo mkdir -p "$INSTALL_DIR"
 sudo chmod -R 777 "$INSTALL_DIR"
+sudo chown -R $USER:$USER "$INSTALL_DIR"
+
+# Ensure FFmpeg directory exists inside LYRA
+FFMPEG_DIR="$INSTALL_DIR/ffmpeg"
+sudo mkdir -p "$FFMPEG_DIR"
+sudo chmod -R 777 "$FFMPEG_DIR"
+sudo chown -R $USER:$USER "$FFMPEG_DIR"
 
 # Publish in Release mode
 echo "📦 Publishing $PROJECT_NAME..."
 sudo dotnet publish "$TEMP_DIR/src/Lyra/Lyra.csproj" --configuration Release --output "$INSTALL_DIR"
 
 # Ensure correct permissions after publish
-sudo chmod -R 755 "$INSTALL_DIR"
+# sudo chmod -R 755 "$INSTALL_DIR"
 
 # Create a launcher script
 echo "🚀 Creating executable wrapper..."
