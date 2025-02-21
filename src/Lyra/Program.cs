@@ -85,6 +85,11 @@ namespace Lyra
                 logger.LogError("❌ Invalid command.");
                 PrintUsage(logger);
             }
+
+            Console.Out.Flush();
+            logger.LogInformation("==============================================================");
+            Console.Out.Flush();
+            await Task.Delay(100); // Give the log time to process before exit
         }
 
         static void PrintBanner(ILogger logger)
