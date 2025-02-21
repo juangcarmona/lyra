@@ -1,5 +1,6 @@
 using Xabe.FFmpeg;
 using Microsoft.Extensions.Logging;
+using Lyra.Utils;
 
 public class ConversionService
 {
@@ -8,6 +9,7 @@ public class ConversionService
     public ConversionService(ILogger<ConversionService> logger)
     {
         _logger = logger;
+        FFmpegChecker.EnsureFFmpegIsAvailable(_logger);
     }
 
     public async Task<string> ConvertToMp3(string inputPath)
