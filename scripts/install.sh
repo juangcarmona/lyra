@@ -42,12 +42,6 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo chmod -R 777 "$INSTALL_DIR"
 sudo chown -R $USER:$USER "$INSTALL_DIR"
 
-# Ensure FFmpeg directory exists inside LYRA
-FFMPEG_DIR="$INSTALL_DIR/ffmpeg"
-sudo mkdir -p "$FFMPEG_DIR"
-sudo chmod -R 777 "$FFMPEG_DIR"
-sudo chown -R $USER:$USER "$FFMPEG_DIR"
-
 # Publish in Release mode
 echo "📦 Publishing $PROJECT_NAME..."
 sudo dotnet publish "$TEMP_DIR/src/Lyra/Lyra.csproj" --configuration Release --output "$INSTALL_DIR"

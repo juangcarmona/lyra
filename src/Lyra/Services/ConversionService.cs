@@ -9,26 +9,26 @@ using Xabe.FFmpeg.Downloader;
 public class ConversionService
 {
     private readonly ILogger<ConversionService> _logger;
-    private readonly string _ffmpegPath;
+    private readonly string _appPath;
 
     public ConversionService(ILogger<ConversionService> logger)
     {
         _logger = logger;
-        _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "ffmpeg");
+        _appPath =AppContext.BaseDirectory
         EnsureFFmpegIsAvailable();
     }
 
     private void EnsureFFmpegIsAvailable()
     {
-        string ffmpegExecutable = Path.Combine(_ffmpegPath, GetFFmpegExecutable());
-        string ffprobeExecutable = Path.Combine(_ffmpegPath, GetFFprobeExecutable());
+        string ffmpegExecutable = Path.Combine(_appPath, GetFFmpegExecutable());
+        string ffprobeExecutable = Path.Combine(_appPath, GetFFprobeExecutable());
 
         try
         {
             if (File.Exists(ffmpegExecutable) && File.Exists(ffprobeExecutable))
             {
-                FFmpeg.SetExecutablesPath(_ffmpegPath);
-                _logger.LogInformation($"✅ FFmpeg is available at: {_ffmpegPath}");
+                FFmpeg.SetExecutablesPath(_appPath);
+                _logger.LogInformation($"✅ FFmpeg is available at: {_appPath}");
                 return;
             }
 
@@ -68,11 +68,10 @@ public class ConversionService
                 throw new Exception("FFmpeg download completed but executables were not found.");
 
             // Move to the correct location
-            Directory.CreateDirectory(_ffmpegPath);
-            File.Move(tempFfmpeg, Path.Combine(_ffmpegPath, GetFFmpegExecutable()), true);
-            File.Move(tempFfprobe, Path.Combine(_ffmpegPath, GetFFprobeExecutable()), true);
+            File.Move(tempFfmpeg, Path.Combine(_appPath, GetFFmpegExecutable()), true);
+            File.Move(tempFfprobe, Path.Combine(_appPath, GetFFprobeExecutable()), true);
 
-            FFmpeg.SetExecutablesPath(_ffmpegPath);
+            FFmpeg.SetExecutablesPath(_appPath);
             return true;
         }
         catch (Exception ex)
