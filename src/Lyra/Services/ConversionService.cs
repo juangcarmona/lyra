@@ -57,9 +57,9 @@ public class ConversionService
         {
             string executionPath = Path.Combine(Environment.CurrentDirectory);
 
-            _logger.LogInformation($"📥 Downloading FFmpeg to: {executionPath}...");
+            _logger.LogInformation($"📥 Downloading FFmpeg to: {_appPath}...");
 
-            FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official).Wait();
+            FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, _appPath).Wait();
 
             // Locate the downloaded executables correctly
             string tempFfmpeg = LocateDownloadedFile(executionPath, GetFFmpegExecutable());
