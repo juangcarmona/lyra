@@ -48,7 +48,7 @@ Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 
 # Add script folder to user's PATH if not already present
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "User") -split ";"  
-if ($scriptFolder -notin $envPath) {  
+if (-not ($envPath -contains $scriptFolder)) {
     $newPath = ($envPath + $scriptFolder) -join ";"  
     [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")  
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
