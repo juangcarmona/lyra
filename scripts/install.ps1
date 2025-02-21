@@ -42,7 +42,7 @@ Write-Host "📦 Publishing $projectName..."
 dotnet publish "$repoDir/src/Lyra/Lyra.csproj" --configuration Release --output $installDir
 
 # Ensure the scripts directory exists
-if (-Not (Test-Path -Path $scriptFolder)) {
+if (-Not (Test-Path -Path "$env:USERPROFILE\scripts")) {
     New-Item -ItemType Directory -Path $scriptFolder -Force
 }
 
