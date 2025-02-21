@@ -16,7 +16,7 @@ public class ConversionService
     {
         _logger = logger;   
         var assembly = System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase;
-        _appPath = System.IO.Path.GetDirectoryName(_assembly) ;
+        _appPath = System.IO.Path.GetDirectoryName(assembly) ;
         EnsureFFmpegIsAvailable();
     }
 
