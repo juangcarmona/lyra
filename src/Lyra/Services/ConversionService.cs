@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Environment.ProcessPath;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Xabe.FFmpeg;
@@ -14,7 +15,7 @@ public class ConversionService
     public ConversionService(ILogger<ConversionService> logger)
     {
         _logger = logger;
-        _appPath =AppContext.BaseDirectory;
+        _appPath = System.Reflection.Assembly.GetEntryAssembly().Location;
         EnsureFFmpegIsAvailable();
     }
 
