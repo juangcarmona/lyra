@@ -99,6 +99,12 @@ namespace Lyra
             logger.LogWarning("  lyra --playlist <Playlist URL>  # Download all audios from a playlist");
             logger.LogWarning("  lyra -c <true|false>            # Convert to MP3 (default: true)");
             logger.LogWarning($"  lyra -d <path>                  # Set destination folder (default: {_destinationPath})");
+
+            logger.LogInformation("Example usage:");
+            logger.LogInformation("  lyra --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+            logger.LogInformation("  lyra --playlist https://www.youtube.com/playlist?list=PL1234567890");
+            logger.LogInformation("  lyra -c false --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+            logger.LogInformation("  lyra -d ~/Music --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
         }
 
         static string GetDefaultDownloadPath()

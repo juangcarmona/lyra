@@ -1,4 +1,4 @@
-$projectName = "LYRA"
+$projectName = "Lyra"
 $repoUrl = "https://github.com/juangcarmona/lyra.git"
 $installDir = Join-Path $env:USERPROFILE $projectName
 $scriptFolder = Join-Path $env:USERPROFILE "scripts"
@@ -7,15 +7,15 @@ $scriptPath = Join-Path $scriptFolder "lyra.cmd"
 # Check if .NET 8 is installed
 $dotnetVersion = dotnet --version
 if (-not $dotnetVersion) {
-    Write-Host "❌ .NET SDK is not installed. Please install .NET 8 and retry." -ForegroundColor Red
+    Write-Host "❌ .NET SDK is not installed. Please install .NET 8 and retry."
     exit 1
 }
 if ($dotnetVersion -notmatch "^8\..*") {
-    Write-Host "❌ .NET 8 is required, but found $dotnetVersion. Please upgrade." -ForegroundColor Red
+    Write-Host "❌ .NET 8 is required, but found $dotnetVersion. Please upgrade."
     exit 1
 }
 
-Write-Host "✅ .NET 8 detected: $dotnetVersion" -ForegroundColor Green
+Write-Host "✅ .NET 8 detected: $dotnetVersion"
 
 # Download source code
 $repoDir = Join-Path $env:TEMP "lyra_repo"
@@ -44,7 +44,7 @@ Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
 if ($envPath -notlike "*$scriptFolder*") {
     [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$scriptFolder", "User")
-    Write-Host "🔧 PATH updated! Restart your terminal to apply changes." -ForegroundColor Yellow
+    Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
 
-Write-Host "🎉 Installation complete! Use 'lyra <URL>' to download MP3 from YouTube." -ForegroundColor Green
+Write-Host "🎉 Installation complete! Use 'lyra'  to see all available commands."

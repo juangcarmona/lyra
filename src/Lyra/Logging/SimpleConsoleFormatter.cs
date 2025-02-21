@@ -25,8 +25,8 @@ namespace Lyra.Logging
             ConsoleColor originalColor = Console.ForegroundColor;
             Console.ForegroundColor = logEntry.LogLevel switch
             {
-                LogLevel.Information => ConsoleColor.Green,
-                LogLevel.Warning => ConsoleColor.Yellow,
+                LogLevel.Information => ConsoleColor.DarkCyan, // LYRA color (approximation of #004F73)
+                LogLevel.Warning => ConsoleColor.DarkYellow,   // Orange-like warning
                 LogLevel.Error => ConsoleColor.Red,
                 LogLevel.Critical => ConsoleColor.DarkRed,
                 _ => ConsoleColor.Gray
