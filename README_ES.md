@@ -17,12 +17,12 @@
 
 ### Linux/macOS
 ```bash
-curl -sSL https://github.com/juangcarmona/lyra/main/scripts/install.sh | Bash
+curl -sSL https://raw.githubusercontent.com/juangcarmona/lyra/main/scripts/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 ``powershell
-iex ((New-Object System.Net.WebClient).DownloadString('https://github.com/juangcarmona/lyra/main/scripts/install.ps1'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/juangcarmona/lyra/main/scripts/install.ps1'))
 ```
 
 ## Uso
