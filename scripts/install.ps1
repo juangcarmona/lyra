@@ -1,10 +1,10 @@
 $projectName = "Lyra"
 $repoUrl = "https://github.com/juangcarmona/lyra.git"
-$installDir = Join-Path $env:USERPROFILE $projectName
-$scriptFolder = Join-Path $env:USERPROFILE "scripts"
-$scriptPath = Join-Path $scriptFolder "lyra.cmd"
+$installDir = [System.IO.Path]::Combine($env:USERPROFILE, $projectName)
+$scriptFolder = [System.IO.Path]::Combine($env:USERPROFILE, "scripts")
+$scriptPath = [System.IO.Path]::Combine($scriptFolder, "lyra.cmd")
 
-# Check if .NET 8 is installed
+# Ensure .NET 8 is installed
 $dotnetVersion = dotnet --version
 if (-not $dotnetVersion) {
     Write-Host "❌ .NET SDK is not installed. Please install .NET 8 and retry."
@@ -17,8 +17,13 @@ if ($dotnetVersion -notmatch "^8\..*") {
 
 Write-Host "✅ .NET 8 detected: $dotnetVersion"
 
-# Download source code
-$repoDir = Join-Path $env:TEMP "lyra_repo"
+# Ensure installation directory exists
+if (-Not (Test-Path -Path $installDir)) {
+    New-Item -ItemType Directory -Path $installDir -Force
+}
+
+# Clone the repository
+$repoDir = [System.IO.Path]::Combine($env:TEMP, "lyra_repo")
 if (Test-Path -Path $repoDir) {
     Remove-Item -Recurse -Force $repoDir
 }
@@ -26,34 +31,31 @@ if (Test-Path -Path $repoDir) {
 Write-Host "📥 Cloning repository..."
 git clone $repoUrl $repoDir
 
-# Ensure correct project path
+# Ensure the correct project path
 if (-not (Test-Path "$repoDir/src/Lyra/Lyra.csproj")) {
     Write-Host "❌ Error: LYRA project file not found. Please check the repository structure."
     exit 1
 }
 
-# Publish in Release mode
+# Publish the project
 Write-Host "📦 Publishing $projectName..."
 dotnet publish "$repoDir/src/Lyra/Lyra.csproj" --configuration Release --output $installDir
 
 # Ensure the scripts directory exists
-if (-not (Test-Path $scriptFolder)) {
-    New-Item -ItemType Directory -Path $scriptFolder | Out-Null
+if (-Not (Test-Path -Path $scriptFolder)) {
+    New-Item -ItemType Directory -Path $scriptFolder -Force
 }
 
 # Create launcher script
 Write-Host "🚀 Creating executable wrapper..."
-$scriptContent = "dotnet `"$installDir\Lyra.dll`" $args"
-Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
+$scriptContent = 'dotnet "%USERPROFILE%\Lyra\Lyra.dll" %*'
+$scriptContent | Out-File -FilePath $scriptPath -Encoding ASCII
 
-# Add script folder to user's PATH if not already present
-$envPath = [System.Environment]::GetEnvironmentVariable("Path", "User") -split ";"  
-if (-not ($envPath -contains $scriptFolder)) {
-    $newPath = ($envPath + $scriptFolder) -join ";"  
-    [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")  
+# Ensure the script folder is in the PATH
+$envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+if ($envPath -notlike "*$scriptFolder*") {
+    [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$scriptFolder", [System.EnvironmentVariableTarget]::User)
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
 
-
-
-# Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
+Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see available commands."
