@@ -47,12 +47,13 @@ $scriptContent = "dotnet `"$installDir\Lyra.dll`" `$args"
 Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 
 # Add script folder to user's PATH if not already present
-$envPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-if ($envPath -notlike "*$scriptFolder*") {
-    $newPath = "$envPath;$scriptFolder"
-    [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+$envPath = [System.Environment]::GetEnvironmentVariable("Path", "User") -split ";"  
+if ($scriptFolder -notin $envPath) {  
+    $newPath = ($envPath + $scriptFolder) -join ";"  
+    [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")  
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
+
 
 
 # Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
