@@ -15,8 +15,8 @@ public class ConversionService
     public ConversionService(ILogger<ConversionService> logger)
     {
         _logger = logger;   
-        var assembly = System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase;
-        _appPath = System.IO.Path.GetDirectoryName(assembly) ;
+        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+        _appPath = Path.GetDirectoryName(assemblyLocation);
         EnsureFFmpegIsAvailable();
     }
 
@@ -56,7 +56,7 @@ public class ConversionService
     {
         try
         {
-            string executionPath = Path.Combine(Environment.CurrentDirectory);
+            // string executionPath = Path.Combine(Environment.CurrentDirectory);
 
             _logger.LogInformation($"📥 Downloading FFmpeg to: {_appPath}...");
 
@@ -70,8 +70,8 @@ public class ConversionService
                 throw new Exception("FFmpeg download completed but executables were not found.");
 
             // Move to the correct location
-            File.Move(tempFfmpeg, Path.Combine(_appPath, GetFFmpegExecutable()), true);
-            File.Move(tempFfprobe, Path.Combine(_appPath, GetFFprobeExecutable()), true);
+            // File.Move(tempFfmpeg, Path.Combine(_appPath, GetFFmpegExecutable()), true);
+            // File.Move(tempFfprobe, Path.Combine(_appPath, GetFFprobeExecutable()), true);
 
             FFmpeg.SetExecutablesPath(_appPath);
             return true;
