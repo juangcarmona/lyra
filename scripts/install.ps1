@@ -26,9 +26,15 @@ if (Test-Path -Path $repoDir) {
 Write-Host "📥 Cloning repository..."
 git clone $repoUrl $repoDir
 
+# Ensure correct project path
+if (-not (Test-Path "$repoDir/src/Lyra/Lyra.csproj")) {
+    Write-Host "❌ Error: LYRA project file not found. Please check the repository structure."
+    exit 1
+}
+
 # Publish in Release mode
 Write-Host "📦 Publishing $projectName..."
-dotnet publish "$repoDir/src/$projectName/$projectName.csproj" --configuration Release --output $installDir
+dotnet publish "$repoDir/src/Lyra/Lyra.csproj" --configuration Release --output $installDir
 
 # Ensure the scripts directory exists
 if (-not (Test-Path $scriptFolder)) {
@@ -37,7 +43,7 @@ if (-not (Test-Path $scriptFolder)) {
 
 # Create launcher script
 Write-Host "🚀 Creating executable wrapper..."
-$scriptContent = "dotnet `"$installDir\$projectName.dll`" `$args"
+$scriptContent = "dotnet `"$installDir\Lyra.dll`" `$args"
 Out-File -FilePath $scriptPath -Encoding ASCII -InputObject $scriptContent
 
 # Add script folder to user's PATH if not already present
@@ -47,4 +53,4 @@ if ($envPath -notlike "*$scriptFolder*") {
     Write-Host "🔧 PATH updated! Restart your terminal to apply changes."
 }
 
-Write-Host "🎉 Installation complete! Use 'lyra'  to see all available commands."
+Write-Host "🎉 Installation complete! Use 'lyra' to see all available commands."
