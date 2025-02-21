@@ -55,4 +55,4 @@ if ($envPath -notlike "*$scriptFolder*") {
 }
 
 
-Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
+# Write-Host "🎉 Installation complete! Use '"lyra'" in your terminal to see all available commands."
