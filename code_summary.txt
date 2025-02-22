@@ -1,0 +1,623 @@
+==== src/Lyra/Logging/SimpleConsoleFormatter.cs ====
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
+
+namespace Lyra.Logging
+{
+    public class SimpleConsoleFormatter : ConsoleFormatter
+    {
+        public SimpleConsoleFormatter() : base("simple") { }
+        public override void Write<TState>(
+            in LogEntry<TState> logEntry,
+            IExternalScopeProvider? scopeProvider,
+            TextWriter textWriter)
+ {
+            if (logEntry.Formatter == null)
+                return;
+
+            string message = logEntry.Formatter(logEntry.State, logEntry.Exception);
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            textWriter.WriteLine($"LYRA - [{logEntry.LogLevel}] {message}");
+        }
+    }
+}
+
+
+
+==== src/Lyra/Program.cs ====
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Lyra.Services;
+using System.Runtime.InteropServices;
+
+namespace Lyra
+{
+    class Program
+    {
+        private static string _destinationPath = GetDefaultDownloadPath();
+
+        static async Task Main(string[] args)
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+            // Default values
+            bool convertToMp3 = true;
+            // string destinationPath = GetDefaultDownloadPath();
+
+            // Parse arguments
+            List<string> videoUrls = new();
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--convert-to-mp3":
+                    case "-c":
+                        if (i + 1 < args.Length && bool.TryParse(args[i + 1], out bool value))
+                        {
+                            convertToMp3 = value;
+                            i++;
+                        }
+                        break;
+                    case "--destination":
+                    case "-d":
+                        if (i + 1 < args.Length)
+                        {
+                            _destinationPath = args[i + 1];
+                            i++;
+                        }
+                        break;
+                    case "--video":
+                    case "--playlist":
+                        if (i + 1 < args.Length)
+                        {
+                            videoUrls.Add(args[i + 1]);
+                            i++;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var serviceProvider = Startup.ConfigureServices(convertToMp3, _destinationPath);
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+
+            PrintBanner(logger);
+
+            if (videoUrls.Count == 0)
+            {
+                PrintUsage(logger);
+                return;
+            }
+
+            var downloader = serviceProvider.GetRequiredService<DownloaderService>();
+
+            if (args.Length == 0)
+            {
+                PrintUsage(logger);
+                return;
+            }
+
+            if (args[0] == "--video" && args.Length > 1)
+            {
+                string videoUrl = args[1];
+                await downloader.DownloadAudio(videoUrl);
+            }
+            else if (args[0] == "--playlist" && args.Length > 1)
+            {
+                string playlistUrl = args[1];
+                await downloader.DownloadPlaylistAudios(playlistUrl);
+            }
+            else
+            {
+                logger.LogError("❌ Invalid command.");
+                PrintUsage(logger);
+            }
+
+            Console.Out.Flush();
+            logger.LogInformation("==============================================================");
+            Console.Out.Flush();
+            await Task.Delay(100); // Give the log time to process before exit
+        }
+
+        static void PrintBanner(ILogger logger)
+        {
+            logger.LogInformation("==============================================================");
+            logger.LogInformation("     🎵 𝐋𝐘𝐑𝐀 - 𝐋ightweight 𝐘outube 𝐑ipping 𝐀ssistant 🎶      ");
+            logger.LogInformation("==============================================================");
+        }
+
+        static void PrintUsage(ILogger logger)
+        {
+            logger.LogWarning("Usage:");
+            logger.LogWarning("  lyra --video <YouTube URL>      # Download a single video");
+            logger.LogWarning("  lyra --playlist <Playlist URL>  # Download all audios from a playlist");
+            logger.LogWarning("  lyra -c <true|false>            # Convert to MP3 (default: true)");
+            logger.LogWarning($"  lyra -d <path>                  # Set destination folder (default: {_destinationPath})");
+
+            logger.LogInformation("Example usage:");
+            logger.LogInformation("  lyra --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+            logger.LogInformation("  lyra --playlist https://www.youtube.com/playlist?list=PL1234567890");
+            logger.LogInformation("  lyra -c false --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+            logger.LogInformation("  lyra -d ~/Music --video https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        }
+
+        static string GetDefaultDownloadPath()
+        {
+            string timestamp = DateTime.Now.ToString("yyyyMMdd");
+            string basePath;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LYRA", "downloads");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LYRA", "downloads");
+            }
+            else
+            {
+                basePath = Path.Combine(Directory.GetCurrentDirectory(), "lyra_downloads");
+            }
+
+            string finalPath = Path.Combine(basePath, timestamp);
+            return finalPath;
+        }
+    }
+}
+
+
+
+==== src/Lyra/Services/ConversionService.cs ====
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
+using System.Reflection;
+
+public class ConversionService
+{
+    private readonly ILogger<ConversionService> _logger;
+    private readonly string _appPath;
+
+    public ConversionService(ILogger<ConversionService> logger)
+    {
+        _logger = logger;   
+        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+        _appPath = Path.GetDirectoryName(assemblyLocation);
+        EnsureFFmpegIsAvailable();
+    }
+
+    private void EnsureFFmpegIsAvailable()
+    {
+        string ffmpegExecutable = Path.Combine(_appPath, GetFFmpegExecutable());
+        string ffprobeExecutable = Path.Combine(_appPath, GetFFprobeExecutable());
+
+        try
+        {
+            if (File.Exists(ffmpegExecutable) && File.Exists(ffprobeExecutable))
+            {
+                FFmpeg.SetExecutablesPath(_appPath);
+                _logger.LogInformation($"✅ FFmpeg is available at: {_appPath}");
+                return;
+            }
+
+            throw new FileNotFoundException("FFmpeg not found");
+        }
+        catch (Exception)
+        {
+            _logger.LogWarning("⚠️ FFmpeg not found. Downloading automatically...");
+
+            if (DownloadAndSetupFFmpeg())
+            {
+                _logger.LogInformation("✅ FFmpeg successfully downloaded and set up.");
+            }
+            else
+            {
+                _logger.LogCritical("❌ FFmpeg download failed. The program **CANNOT** continue.");
+                throw new Exception("FFmpeg installation failed.");
+            }
+        }
+    }
+
+    private bool DownloadAndSetupFFmpeg()
+    {
+        try
+        {
+            // string executionPath = Path.Combine(Environment.CurrentDirectory);
+
+            _logger.LogInformation($"📥 Downloading FFmpeg to: {_appPath}...");
+
+            FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, _appPath).Wait();
+
+            // Locate the downloaded executables correctly
+            string tempFfmpeg = LocateDownloadedFile(_appPath, GetFFmpegExecutable());
+            string tempFfprobe = LocateDownloadedFile(_appPath, GetFFprobeExecutable());
+
+            if (string.IsNullOrEmpty(tempFfmpeg) || string.IsNullOrEmpty(tempFfprobe))
+                throw new Exception("FFmpeg download completed but executables were not found.");
+
+            // Move to the correct location
+            // File.Move(tempFfmpeg, Path.Combine(_appPath, GetFFmpegExecutable()), true);
+            // File.Move(tempFfprobe, Path.Combine(_appPath, GetFFprobeExecutable()), true);
+
+            FFmpeg.SetExecutablesPath(_appPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"❌ FFmpeg download failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static string LocateDownloadedFile(string searchDirectory, string filename)
+    {
+        try
+        {
+            var files = Directory.GetFiles(searchDirectory, filename, SearchOption.AllDirectories);
+            return files.Length > 0 ? files[0] : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<string> ConvertToMp3(string inputPath)
+    {
+        string outputPath = Path.ChangeExtension(inputPath, ".mp3");
+
+        try
+        {
+            _logger.LogInformation($"🎵 Converting {inputPath} to MP3...");
+
+            var conversion = await FFmpeg.Conversions.New()
+                .AddParameter($"-i \"{inputPath}\" -q:a 2 \"{outputPath}\"") // VBR MP3
+                .Start();
+
+            _logger.LogInformation($"✅ Conversion complete: {outputPath}");
+            return outputPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"❌ Error converting to MP3: {ex.Message}");
+            throw;
+        }
+    }
+
+    private static string GetFFmpegExecutable()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "ffmpeg.exe" : "ffmpeg";
+    }
+
+    private static string GetFFprobeExecutable()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "ffprobe.exe" : "ffprobe";
+    }
+}
+
+
+
+==== src/Lyra/Services/DownloaderService.cs ====
+using Microsoft.Extensions.Logging;
+using YoutubeExplode;
+
+namespace Lyra.Services
+{
+    public class DownloaderService
+    {
+        private readonly ILogger<DownloaderService> _logger;
+        private readonly ConversionService _conversionService;
+        private static readonly HttpClient _httpClient = new();
+        private readonly YoutubeClient _youtube;
+        private readonly bool _convertToMp3;
+        private readonly string _destinationPath;
+
+        public DownloaderService(
+            ILogger<DownloaderService> logger,
+            ConversionService conversionService,
+            bool convertToMp3,
+            string destinationPath)
+        {
+            _logger = logger;
+            _conversionService = conversionService;
+            _youtube = new YoutubeClient();
+            _convertToMp3 = convertToMp3;
+            _destinationPath = destinationPath;
+
+            Directory.CreateDirectory(_destinationPath);
+        }
+
+        public async Task DownloadAudio(string url)
+        {
+            try
+            {
+                _logger.LogInformation($"🎵 Downloading audio: {url}");
+
+                var video = await _youtube.Videos.GetAsync(url);
+                var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(url);
+
+                var audioStreamInfo = streamManifest
+                    .GetAudioOnlyStreams()
+                    .OrderByDescending(s => s.Bitrate)
+                    .FirstOrDefault();
+
+                if (audioStreamInfo == null)
+                {
+                    _logger.LogError("❌ No audio streams found.");
+                    return;
+                }
+
+                string safeTitle = FileNameSanitizer.SanitizeFileName(video.Title);
+                string audioPath = Path.Combine(_destinationPath, safeTitle + "." + audioStreamInfo.Container.Name);
+
+                await _youtube.Videos.Streams.DownloadAsync(audioStreamInfo, audioPath);
+
+                _logger.LogInformation($"✅ Audio downloaded: {audioPath}");
+
+                if (_convertToMp3)
+                {
+                    await _conversionService.ConvertToMp3(audioPath);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error downloading audio: {ex.Message}");
+            }
+        }
+
+        public async Task DownloadPlaylistAudios(string playlistUrl)
+        {
+            _logger.LogInformation($"📜 Fetching playlist: {playlistUrl}");
+
+            var videoUrls = new List<string>();
+
+            try
+            {
+                // Fetch videos asynchronously using await foreach
+                await foreach (var video in _youtube.Playlists.GetVideosAsync(playlistUrl))
+                {
+                    string videoUrl = $"https://www.youtube.com/watch?v={video.Id}";
+                    videoUrls.Add(videoUrl);
+                    _logger.LogDebug($"🔗 Found video: {videoUrl}");
+                }
+
+                if (!videoUrls.Any())
+                {
+                    _logger.LogWarning("❌ No videos found in the playlist.");
+                    return;
+                }
+
+                _logger.LogInformation($"🔹 Found {videoUrls.Count} videos in the playlist. Starting downloads...");
+
+                // **Execute all downloads in parallel**
+                var downloadTasks = videoUrls.Select(url => DownloadAudio(url));
+                await Task.WhenAll(downloadTasks);
+
+                _logger.LogInformation($"✅ Playlist download and conversion completed.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"⚠️ Error fetching playlist: {ex.Message}");
+            }
+        }
+
+
+
+
+    }
+}
+
+
+
+==== src/Lyra/Services/FileSanitizer.cs ====
+using System.Text.RegularExpressions;
+
+public static class FileNameSanitizer
+{
+    public static string SanitizeFileName(string fileName, int maxLength = 255)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException("Filename cannot be empty or whitespace.", nameof(fileName));
+
+        // 1. Remove invalid characters for any file system
+        string sanitized = Regex.Replace(fileName, @"[<>:""/\\|?*\x00-\x1F]", "_");
+
+        // 2. Remove problematic characters specific to some operating systems
+        sanitized = Regex.Replace(sanitized, @"[\p{C}]", ""); // Invisible control characters
+        sanitized = sanitized.Replace("..", "_"); // Avoid problems with relative paths
+        sanitized = sanitized.Replace("~", "_"); // Avoid problems on UNIX
+
+        // 3. Replace multiple spaces with a single underscore
+        sanitized = Regex.Replace(sanitized, @"\s+", "_");
+
+        // 4. Remove any leading or trailing dots to avoid problems with Unix and Windows
+        sanitized = sanitized.Trim('.');
+
+        // 5. Limit the maximum length to that allowed by common file systems
+        if (sanitized.Length > maxLength)
+            sanitized = sanitized.Substring(0, maxLength);
+
+        // 6. Convert to lowercase to avoid case sensitivity issues on some systems
+        return sanitized.ToLower();
+    }
+}
+
+
+==== src/Lyra/Services/PlaylistExtractor.cs ====
+// using System;
+// using System.Collections.Generic;
+// using System.Linq;
+// using System.Threading.Tasks;
+// using YoutubeExplode;
+// using YoutubeExplode.Common;
+// using YoutubeExplode.Playlists;
+// using VideoLibrary;
+
+// namespace Lyra.Services
+// {
+//     public class PlaylistExtractor
+//     {
+//         private readonly YoutubeClient _youtubeClient = new YoutubeClient();
+
+//         public async Task<List<YouTubeVideo>> GetVideosFromPlaylist(string playlistUrl)
+//         {
+//             var videos = new List<YouTubeVideo>();
+
+//             try
+//             {
+//                 var playlist = await _youtubeClient.Playlists.GetAsync(playlistUrl);
+//                 var videoUrls = playlist.Videos.Where(v => v.Status == VideoStatus.Ok).Select(v => v.Url).ToList();
+
+//                 foreach (var url in videoUrls)
+//                 {
+//                     var youtube = YouTube.Default; 
+//                     var video = await youtube.GetVideoAsync(url);
+//                     videos.Add(video);
+//                 }
+//             }
+//             catch (Exception ex)
+//             {
+//                 Console.WriteLine($"❌ Error retrieving playlist: {ex.Message}");
+//             }
+
+//             return videos;
+//         }
+//     }
+// }
+
+
+
+==== src/Lyra/Startup.cs ====
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Lyra.Services;
+using Lyra.Logging;
+using Microsoft.Extensions.Logging.Console;
+
+namespace Lyra
+{
+    public static class Startup
+    {
+        public static ServiceProvider ConfigureServices(bool convertToMp3, string destinationPath)
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .Build();
+
+            return new ServiceCollection()
+                .AddLogging(loggingBuilder =>
+                {
+                    loggingBuilder.ClearProviders(); // Remove default providers
+                    loggingBuilder.AddConsoleFormatter<SimpleConsoleFormatter, ConsoleFormatterOptions>();
+                    loggingBuilder.AddConsole(options =>
+                    {
+                        options.FormatterName = "simple"; // Use custom formatter
+                    });
+                    loggingBuilder.SetMinimumLevel(LogLevel.Debug);
+                })
+                .AddSingleton<DownloaderService>(sp =>
+                    new DownloaderService(
+                        sp.GetRequiredService<ILogger<DownloaderService>>(),
+                        sp.GetRequiredService<ConversionService>(),
+                        convertToMp3,
+                        destinationPath))
+                .AddSingleton<ConversionService>()
+                .BuildServiceProvider();
+        }
+    }
+}
+
+
+
+==== test/Lyra.Tests/DownloaderServiceTests.cs ====
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Lyra.Services;
+using Xunit;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
+
+namespace Lyra.Tests
+{
+    public class DownloaderServiceTests : IDisposable
+    {
+        private readonly DownloaderService _downloader;
+        private readonly string _testDownloadPath;
+        private readonly ILogger<DownloaderService> _mockLogger;
+        private readonly ConversionService _mockConversionService;
+
+        public DownloaderServiceTests()
+        {
+            // Create a unique temp test directory
+            _testDownloadPath = Path.Combine(Path.GetTempPath(), "lyra_test_downloads_" + Guid.NewGuid());
+            Directory.CreateDirectory(_testDownloadPath);
+
+            _mockLogger = Substitute.For<ILogger<DownloaderService>>();
+            _mockConversionService = Substitute.For<ConversionService>();
+
+            // Inject the logger mock
+            _downloader = new DownloaderService(_mockLogger, _mockConversionService);
+        }
+
+        [Fact]
+        public async Task DownloadSingleVideo_ShouldDownloadAndConvertMp3()
+        {
+            string videoUrl = "https://www.youtube.com/watch?v=WBqf-vSMA6k"; // Example (verify it's available)
+
+            await _downloader.DownloadAudio(videoUrl);
+
+            // Assert the MP3 file exists
+            string expectedMp3 = Directory.GetFiles(_testDownloadPath, "*.mp3").FirstOrDefault();
+            expectedMp3.Should().NotBeNull("MP3 file should be created after conversion");
+
+            _mockLogger.Received().LogInformation(Arg.Any<string>());
+
+            Console.WriteLine($"✅ Test Passed: Downloaded {expectedMp3}");
+        }
+
+        [Fact]
+        public async Task DownloadPlaylist_ShouldDownloadMultipleMp3s()
+        {
+            string playlistUrl = "https://www.youtube.com/playlist?list=PLquujPA7EWzOoUtojEcgQJCpTkdbVG4LV"; // Example
+
+            await _downloader.DownloadPlaylistAudios(playlistUrl);
+
+            // Assert multiple MP3 files exist
+            var mp3Files = Directory.GetFiles(_testDownloadPath, "*.mp3");
+            mp3Files.Length.Should().BeGreaterThan(1, "A playlist should contain multiple MP3 files");
+
+            _mockLogger.Received().LogInformation(Arg.Any<string>());
+
+            Console.WriteLine($"✅ Test Passed: Downloaded {mp3Files.Length} MP3 files from playlist");
+        }
+
+        public void Dispose()
+        {
+            // Cleanup test directory after tests
+            if (Directory.Exists(_testDownloadPath))
+            {
+                Directory.Delete(_testDownloadPath, true);
+            }
+        }
+    }
+}
+
+
+
+==== test/Lyra.Tests/GlobalUsings.cs ====
+global using Xunit;
+
+

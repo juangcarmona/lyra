@@ -1,100 +1,19 @@
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
-using System.Reflection;
+using System.Diagnostics;
 
 public class ConversionService
 {
     private readonly ILogger<ConversionService> _logger;
-    private readonly string _appPath;
 
     public ConversionService(ILogger<ConversionService> logger)
     {
-        _logger = logger;   
-        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-        _appPath = Path.GetDirectoryName(assemblyLocation);
+        _logger = logger;
         EnsureFFmpegIsAvailable();
     }
 
-    private void EnsureFFmpegIsAvailable()
-    {
-        string ffmpegExecutable = Path.Combine(_appPath, GetFFmpegExecutable());
-        string ffprobeExecutable = Path.Combine(_appPath, GetFFprobeExecutable());
-
-        try
-        {
-            if (File.Exists(ffmpegExecutable) && File.Exists(ffprobeExecutable))
-            {
-                FFmpeg.SetExecutablesPath(_appPath);
-                _logger.LogInformation($"✅ FFmpeg is available at: {_appPath}");
-                return;
-            }
-
-            throw new FileNotFoundException("FFmpeg not found");
-        }
-        catch (Exception)
-        {
-            _logger.LogWarning("⚠️ FFmpeg not found. Downloading automatically...");
-
-            if (DownloadAndSetupFFmpeg())
-            {
-                _logger.LogInformation("✅ FFmpeg successfully downloaded and set up.");
-            }
-            else
-            {
-                _logger.LogCritical("❌ FFmpeg download failed. The program **CANNOT** continue.");
-                throw new Exception("FFmpeg installation failed.");
-            }
-        }
-    }
-
-    private bool DownloadAndSetupFFmpeg()
-    {
-        try
-        {
-            // string executionPath = Path.Combine(Environment.CurrentDirectory);
-
-            _logger.LogInformation($"📥 Downloading FFmpeg to: {_appPath}...");
-
-            FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, _appPath).Wait();
-
-            // Locate the downloaded executables correctly
-            string tempFfmpeg = LocateDownloadedFile(_appPath, GetFFmpegExecutable());
-            string tempFfprobe = LocateDownloadedFile(_appPath, GetFFprobeExecutable());
-
-            if (string.IsNullOrEmpty(tempFfmpeg) || string.IsNullOrEmpty(tempFfprobe))
-                throw new Exception("FFmpeg download completed but executables were not found.");
-
-            // Move to the correct location
-            // File.Move(tempFfmpeg, Path.Combine(_appPath, GetFFmpegExecutable()), true);
-            // File.Move(tempFfprobe, Path.Combine(_appPath, GetFFprobeExecutable()), true);
-
-            FFmpeg.SetExecutablesPath(_appPath);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"❌ FFmpeg download failed: {ex.Message}");
-            return false;
-        }
-    }
-
-    private static string LocateDownloadedFile(string searchDirectory, string filename)
-    {
-        try
-        {
-            var files = Directory.GetFiles(searchDirectory, filename, SearchOption.AllDirectories);
-            return files.Length > 0 ? files[0] : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     public async Task<string> ConvertToMp3(string inputPath)
     {
@@ -115,6 +34,119 @@ public class ConversionService
         {
             _logger.LogError($"❌ Error converting to MP3: {ex.Message}");
             throw;
+        }
+    }
+
+    static string GetFFmpegPath()
+    {
+        string basePath;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LYRA", "ffmpeg");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".lyra", "ffmpeg");
+        }
+        else
+        {
+            basePath = Path.Combine(Directory.GetCurrentDirectory(), "ffmpeg");
+        }
+
+        Directory.CreateDirectory(basePath);
+
+        return basePath;
+    }
+
+    private void EnsureFFmpegIsAvailable()
+    {
+        string ffmpegPath = GetFFmpegPath();
+        string ffmpegExecutable = Path.Combine(ffmpegPath, GetFFmpegExecutable());
+        string ffprobeExecutable = Path.Combine(ffmpegPath, GetFFprobeExecutable());
+
+        try
+        {
+            if (IsFFmpegInstalled())
+            {
+                _logger.LogInformation("✅ FFmpeg is available in system.");
+                return;
+            }
+
+            if (File.Exists(ffmpegExecutable) && File.Exists(ffprobeExecutable))
+            {
+                FFmpeg.SetExecutablesPath(ffmpegPath);
+                _logger.LogInformation($"✅ FFmpeg is available at: {ffmpegPath}");
+                return;
+            }
+
+            throw new FileNotFoundException("FFmpeg not found");
+        }
+        catch (Exception)
+        {
+            _logger.LogWarning("⚠️ FFmpeg not found. Downloading automatically...");
+
+            if (DownloadAndSetupFFmpeg(ffmpegPath))
+            {
+                _logger.LogInformation("✅ FFmpeg successfully downloaded and set up.");
+            }
+            else
+            {
+                _logger.LogCritical("❌ FFmpeg download failed. The program **CANNOT** continue.");
+                throw new Exception("FFmpeg installation failed.");
+            }
+        }
+    }
+
+    private bool DownloadAndSetupFFmpeg(string ffmpegPath)
+    {
+        try
+        {
+            _logger.LogInformation($"📥 Downloading FFmpeg to: {ffmpegPath}...");
+
+            FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, ffmpegPath).Wait();
+
+            // Verificar si los archivos existen
+            string ffmpegExecutable = Path.Combine(ffmpegPath, GetFFmpegExecutable());
+            string ffprobeExecutable = Path.Combine(ffmpegPath, GetFFprobeExecutable());
+
+            if (!File.Exists(ffmpegExecutable) || !File.Exists(ffprobeExecutable))
+            {
+                throw new Exception("FFmpeg download completed but executables were not found.");
+            }
+
+            FFmpeg.SetExecutablesPath(ffmpegPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"❌ FFmpeg download failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool IsFFmpegInstalled()
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = "-version",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
         }
     }
 
