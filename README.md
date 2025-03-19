@@ -38,8 +38,8 @@ lyra -p https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID
 ```
 
 ## Roadmap
-- [ ] Support single video downloads
-- [ ] Implement playlist downloading
+- [x] Support single video downloads
+- [x] Implement playlist downloading
 - [ ] Add multi-threaded downloads
 - [ ] Improve metadata handling (ID3 tags, album art)
 - [ ] Provide binary releases for easy installation
