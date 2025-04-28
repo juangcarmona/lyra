@@ -87,10 +87,16 @@ $scriptContent = 'dotnet "%USERPROFILE%\Lyra\Lyra.dll" %*'
 $scriptContent | Out-File -FilePath $scriptPath -Encoding ASCII
 
 # Ensure scripts folder is in PATH
-$envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-if ($envPath -notlike "*$scriptFolder*") {
-    [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$scriptFolder", [System.EnvironmentVariableTarget]::User)
-    Write-Host "INFO: PATH updated. Restart your terminal for changes to apply." -ForegroundColor Yellow
+$envPathUser = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+if ($envPathUser -notlike "*$scriptFolder*") {
+    # Update user's PATH permanently
+    [System.Environment]::SetEnvironmentVariable("Path", "$envPathUser;$scriptFolder", [System.EnvironmentVariableTarget]::User)
+    Write-Host "INFO: PATH updated in environment variables." -ForegroundColor Yellow
+
+    # Update PATH in current session
+    $env:Path += ";$scriptFolder"
+    Write-Host "INFO: PATH updated in the current session." -ForegroundColor Yellow
 }
+
 
 Write-Host "INFO: Installation complete! Use 'lyra' in your terminal to run the program." -ForegroundColor Green
