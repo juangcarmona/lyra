@@ -9,34 +9,61 @@ $scriptPath = [System.IO.Path]::Combine($scriptFolder, "lyra.cmd")
 $repoDir = [System.IO.Path]::Combine($env:TEMP, "lyra_repo")
 $projectFile = "$repoDir/src/Lyra/Lyra.csproj"
 
-# Ensure .NET 8 is installed
-$dotnetVersion = dotnet --version
+# Check if Lyra is already installed
+if (Test-Path -Path $installDir) {
+    Write-Host "WARNING: Lyra is already installed in $installDir. The installation will overwrite existing files." -ForegroundColor Yellow
+}
+
+# Ensure .NET SDK is installed
+try {
+    $dotnetVersion = dotnet --version
+} catch {
+    $dotnetVersion = $null
+}
+
 if (-not $dotnetVersion) {
-    Write-Host "ERROR: .NET SDK is not installed. Install .NET 8 and retry."
+    Write-Host "ERROR: No .NET SDK detected. Please install .NET 8 from:" -ForegroundColor Red
+    Write-Host "https://dotnet.microsoft.com/en-us/download/dotnet/8.0" -ForegroundColor Cyan
     exit 1
 }
-if ($dotnetVersion -notmatch "^8\..*") {
-    Write-Host "ERROR: .NET 8 is required, but found $dotnetVersion. Please upgrade."
+
+# Ensure Git is installed
+try {
+    git --version | Out-Null
+} catch {
+    Write-Host "ERROR: Git is not installed or not found in PATH. Please install Git from:" -ForegroundColor Red
+    Write-Host "https://git-scm.com/downloads" -ForegroundColor Cyan
     exit 1
 }
-Write-Host "INFO: .NET 8 detected: $dotnetVersion"
+
+# Ensure .NET version is compatible
+if ($dotnetVersion -match "^([8-9]|1[0-9])\..*") {
+    Write-Host "INFO: Compatible .NET SDK detected: $dotnetVersion"
+} else {
+    Write-Host "ERROR: Incompatible .NET SDK version detected: $dotnetVersion" -ForegroundColor Red
+    Write-Host "Please install .NET 8 or higher from:" -ForegroundColor Red
+    Write-Host "https://dotnet.microsoft.com/en-us/download/dotnet/8.0" -ForegroundColor Cyan
+    exit 1
+}
 
 # Ensure installation directory exists
 if (-Not (Test-Path -Path $installDir)) {
-    New-Item -ItemType Directory -Path $installDir -Force
+    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 }
 
-# Clone repository
+# Clean previous temporary repo clone
 if (Test-Path -Path $repoDir) {
     Remove-Item -Recurse -Force $repoDir
 }
+
+# Clone repository
 Write-Host "INFO: Cloning repository..."
 git clone --depth=1 $repoUrl $repoDir
 
 # Validate project file existence
 if (-not (Test-Path $projectFile)) {
-    Write-Host "ERROR: LYRA project file not found at expected path: $projectFile"
-    Write-Host "INFO: Checking actual repo structure..."
+    Write-Host "ERROR: LYRA project file not found at expected path: $projectFile" -ForegroundColor Red
+    Write-Host "INFO: Checking actual repo structure..." -ForegroundColor Yellow
     Get-ChildItem -Path $repoDir -Recurse -Filter "*.csproj"
     exit 1
 }
@@ -45,13 +72,13 @@ if (-not (Test-Path $projectFile)) {
 Write-Host "INFO: Publishing Lyra..."
 dotnet publish $projectFile --configuration Release --output $installDir
 if (-not (Test-Path "$installDir/Lyra.dll")) {
-    Write-Host "ERROR: Build failed. Lyra.dll not found in $installDir"
+    Write-Host "ERROR: Build failed. Lyra.dll not found in $installDir" -ForegroundColor Red
     exit 1
 }
 
 # Ensure scripts directory exists
 if (-Not (Test-Path -Path $scriptFolder)) {
-    New-Item -ItemType Directory -Path $scriptFolder -Force
+    New-Item -ItemType Directory -Path $scriptFolder -Force | Out-Null
 }
 
 # Create launcher script
@@ -63,7 +90,7 @@ $scriptContent | Out-File -FilePath $scriptPath -Encoding ASCII
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 if ($envPath -notlike "*$scriptFolder*") {
     [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$scriptFolder", [System.EnvironmentVariableTarget]::User)
-    Write-Host "INFO: PATH updated. Restart your terminal for changes to apply."
+    Write-Host "INFO: PATH updated. Restart your terminal for changes to apply." -ForegroundColor Yellow
 }
 
-Write-Host "INFO: Installation complete! Use 'lyra' in your terminal to run the program."
+Write-Host "INFO: Installation complete! Use 'lyra' in your terminal to run the program." -ForegroundColor Green
